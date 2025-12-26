@@ -1,24 +1,34 @@
-function onScanSuccess(decodedText, decodedResult) {
-    // Se ejecuta cuando se detecta un código
-    document.getElementById('result').innerText = `Código detectado: ${decodedText}`;
-    
-    // Opcional: Detener el escaneo tras el éxito
-    html5QrcodeScanner.clear();
+function onScanSuccess(decodedText) {
+    // 1. Pausar el escáner
+    html5QrcodeScanner.pause(true);
+
+    // 2. Obtener el inventario actual
+    let inventario = JSON.parse(localStorage.getItem("inventario_web") || "[]");
+
+    // 3. Buscar si el código ya está registrado
+    let productoExistente = inventario.find(p => p.id === decodedText);
+
+    if (productoExistente) {
+        // SI EXISTE: Mostrar información y no pedir registro
+        alert("Producto ya registrado:\n\nNombre: " + productoExistente.nombre + "\nCódigo: " + decodedText);
+    } else {
+        // NO EXISTE: Pedir nombre para registrarlo
+        let nombre = prompt("NUEVO PRODUCTO DETECTADO\nCódigo: " + decodedText + "\n\nIngrese el nombre:");
+
+        if (nombre) {
+            inventario.push({
+                id: decodedText,
+                nombre: nombre,
+                fecha: new Date().toLocaleString()
+            });
+            localStorage.setItem("inventario_web", JSON.stringify(inventario));
+            alert("¡Guardado con éxito!");
+            actualizarInterfaz();
+        }
+    }
+
+    // 4. Reanudar el escáner después de 2 segundos
+    setTimeout(() => { 
+        html5QrcodeScanner.resume(); 
+    }, 2000);
 }
-
-function onScanFailure(error) {
-    // Errores de lectura (sucede continuamente mientras busca, mejor no mostrar nada)
-}
-
-// Configuración del escáner
-let html5QrcodeScanner = new Html5QrcodeScanner(
-    "reader", 
-    { 
-        fps: 10, // Cuadros por segundo
-        qrbox: { width: 250, height: 150 }, // Área de escaneo
-        rememberLastUsedCamera: true
-    },
-    /* verbose= */ false
-);
-
-html5QrcodeScanner.render(onScanSuccess, onScanFailure);
