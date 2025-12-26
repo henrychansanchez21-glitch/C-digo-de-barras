@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lector de Barras</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body>
+    <div id="reader" style="width: 500px"></div>
+    <div id="result"></div>
+
+    <script>
+        function onScanSuccess(decodedText, decodedResult) {
+            alert("Código escaneado: " + decodedText);
+        }
+
+        // Usamos una versión más simple para evitar errores de inicialización
+        var html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", { fps: 10, qrbox: 250 });
+        
+        html5QrcodeScanner.render(onScanSuccess);
+    </script>
+</body>
+</html>
