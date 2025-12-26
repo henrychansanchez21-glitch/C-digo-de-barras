@@ -1,23 +1,94 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>Lector de Barras</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lector de Barras Pro</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #f0f2f5; padding: 20px; }
+        #reader { width: 100%; max-width: 450px; margin: auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .controls { margin: 20px 0; }
+        #lista-guardados { text-align: left; background: white; padding: 15px; border-radius: 10px; max-width: 450px; margin: 20px auto; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .producto-item { border-bottom: 1px solid #eee; padding: 8px 0; }
+        .btn-borrar { background: #ff4444; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-top: 10px; }
+    </style>
 </head>
 <body>
-    <div id="reader" style="width: 500px"></div>
-    <div id="result"></div>
+
+    <h2>Lector de Código de Barras</h2>
+    
+    <div id="reader"></div>
+
+    <div id="lista-guardados">
+        <h3>Productos en LocalStorage:</h3>
+        <div id="items"></div>
+        <button class="btn-borrar" onclick="limpiarTodo()">Limpiar Inventario</button>
+    </div>
 
     <script>
-        function onScanSuccess(decodedText, decodedResult) {
-            alert("Código escaneado: " + decodedText);
+        function onScanSuccess(decodedText) {
+            // Pausar para que no lea mil veces mientras sale el prompt
+            html5QrcodeScanner.pause(true);
+
+            let nombre = prompt("Código: " + decodedText + "\n¿Nombre del producto?");
+
+            if (nombre) {
+                let inventario = JSON.parse(localStorage.getItem("inventario_web") || "[]");
+                inventario.push({
+                    id: decodedText,
+                    nombre: nombre,
+                    fecha: new Date().toLocaleString()
+                });
+                localStorage.setItem("inventario_web", JSON.stringify(inventario));
+                alert("Guardado: " + nombre);
+                actualizarInterfaz();
+            }
+
+            // Reanudar después de un momento
+            setTimeout(() => { html5QrcodeScanner.resume(); }, 1500);
         }
 
-        // Usamos una versión más simple para evitar errores de inicialización
-        var html5QrcodeScanner = new Html5QrcodeScanner(
-            "reader", { fps: 10, qrbox: 250 });
-        
+        function actualizarInterfaz() {
+            let inventario = JSON.parse(localStorage.getItem("inventario_web") || "[]");
+            let contenedor = document.getElementById("items");
+            contenedor.innerHTML = "";
+            
+            if (inventario.length === 0) {
+                contenedor.innerHTML = "<p>No hay productos guardados.</p>";
+                return;
+            }
+
+            inventario.reverse().forEach(p => {
+                let div = document.createElement("div");
+                div.className = "producto-item";
+                div.innerHTML = `<strong>${p.nombre}</strong><br><small>Cod: ${p.id} | ${p.fecha}</small>`;
+                contenedor.appendChild(div);
+            });
+        }
+
+        function limpiarTodo() {
+            if(confirm("¿Seguro que quieres borrar todo el inventario?")) {
+                localStorage.removeItem("inventario_web");
+                actualizarInterfaz();
+            }
+        }
+
+        // CONFIGURACIÓN CON OPCIÓN DE IMAGEN
+        const html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", 
+            { 
+                fps: 10, 
+                qrbox: {width: 250, height: 150},
+                // Esta opción habilita el botón de subir archivo/imagen
+                showTorchButtonIfSupported: true,
+                showZoomSliderIfSupported: true,
+                defaultZoomValueIfSupported: 2
+            }
+        );
+
         html5QrcodeScanner.render(onScanSuccess);
+        actualizarInterfaz();
     </script>
 </body>
 </html>
