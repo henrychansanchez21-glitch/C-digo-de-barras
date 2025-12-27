@@ -3,49 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scanner Pro - Con Permisos</title>
+    <title>Scanner Inteligente - Autocompletado</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 
     <style>
-        :root { --primary: #4a90e2; --success: #28a745; --danger: #dc3545; --dark: #333; }
-        body { font-family: sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        :root { --primary: #4a90e2; --success: #28a745; --warning: #f39c12; --danger: #dc3545; --dark: #333; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; display: flex; justify-content: center; }
         .app-container { width: 100%; max-width: 500px; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: var(--dark); }
         
         #scanner-container { 
             width: 100%; height: 250px; background: #000; border-radius: 10px; 
-            overflow: hidden; position: relative; margin-bottom: 20px; border: 3px solid #ddd;
+            overflow: hidden; position: relative; margin-bottom: 20px; border: 4px solid #ddd;
         }
         #scanner-container video { width: 100%; height: 100%; object-fit: cover; }
         
         .input-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
-        input { padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; }
-        button { padding: 15px; background-color: var(--success); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .btn-retry { background-color: var(--primary); margin-top: 10px; display: none; }
+        input { padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; outline: none; }
         
+        /* Estilo cuando el producto ya existe */
+        .exists { border-color: var(--warning) !important; background-color: #fff9e6; }
+        .is-new { border-color: var(--success) !important; }
+
+        button { padding: 15px; background-color: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        
+        .status-msg { font-size: 13px; text-align: center; color: #666; margin-bottom: 10px; font-weight: bold; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
-        .status-msg { font-size: 12px; text-align: center; color: #666; margin-bottom: 10px; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; font-size: 14px; }
     </style>
 </head>
 <body>
 
 <div class="app-container">
-    <h1>Escáner de Inventario</h1>
-    <div id="status" class="status-msg">Solicitando acceso a la cámara...</div>
+    <h1>Mi Galería de Productos</h1>
+    <div id="status" class="status-msg">Iniciando cámara...</div>
     
     <div id="scanner-container"></div>
     
-    <button id="btn-retry" class="btn-retry" onclick="iniciarEscanner()">Reintentar Cámara / Pedir Permiso</button>
-
     <div class="input-group">
-        <input type="text" id="barcode-res" placeholder="Código detectado..." readonly>
+        <label style="font-size: 12px; color: #888;">Código de Barras</label>
+        <input type="text" id="barcode-res" placeholder="Escaneando..." readonly>
+        
+        <label style="font-size: 12px; color: #888;">Nombre del Producto</label>
         <input type="text" id="product-name" placeholder="Nombre del producto">
-        <button onclick="guardarProducto()">AGREGAR A GALERÍA</button>
+        
+        <button id="btn-save" onclick="guardarProducto()">GUARDAR NUEVO PRODUCTO</button>
     </div>
 
     <div class="gallery-section">
-        <h3>Productos Guardados</h3>
+        <h3>Galería Guardada</h3>
         <table>
             <thead>
                 <tr><th>Código</th><th>Nombre</th></tr>
@@ -58,45 +64,53 @@
 <script>
     let db = JSON.parse(localStorage.getItem('galeria_codigos')) || [];
 
-    // Función para iniciar el escáner y solicitar permisos
     function iniciarEscanner() {
-        const status = document.getElementById('status');
-        const retryBtn = document.getElementById('btn-retry');
-
         Quagga.init({
             inputStream: {
-                name: "Live",
-                type: "LiveStream",
+                name: "Live", type: "LiveStream",
                 target: document.querySelector('#scanner-container'),
-                constraints: {
-                    facingMode: "environment", // Cámara trasera
-                    width: { min: 640 },
-                    height: { min: 480 }
-                },
+                constraints: { facingMode: "environment" }
             },
-            decoder: { readers: ["ean_reader", "code_128_reader"] }
+            decoder: { readers: ["ean_reader", "code_128_reader", "upc_reader"] }
         }, function(err) {
-            if (err) {
-                console.error(err);
-                if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
-                    status.innerHTML = "<b style='color:red;'>Permiso denegado.</b> Por favor, activa la cámara en la configuración de tu navegador.";
-                } else {
-                    status.innerHTML = "Error al iniciar cámara: " + err.name;
-                }
-                retryBtn.style.display = "block";
-                return;
-            }
-            status.innerHTML = "Cámara activa. Apunta a un código de barras.";
-            retryBtn.style.display = "none";
+            if (err) { document.getElementById('status').innerText = "Error de cámara: " + err.name; return; }
+            document.getElementById('status').innerText = "Cámara lista. Escanea un código.";
             Quagga.start();
         });
     }
 
-    // Escucha la detección de códigos
+    // --- LÓGICA DE DETECCIÓN Y BÚSQUEDA ---
     Quagga.onDetected(function(result) {
         const code = result.codeResult.code;
-        document.getElementById('barcode-res').value = code;
-        // Sonido breve o vibración (opcional)
+        const inputCodigo = document.getElementById('barcode-res');
+        const inputNombre = document.getElementById('product-name');
+        const btnSave = document.getElementById('btn-save');
+        const status = document.getElementById('status');
+
+        inputCodigo.value = code;
+
+        // BUSCAR SI EL CÓDIGO YA EXISTE EN LA GALERÍA
+        const productoExistente = db.find(p => p.codigo === code);
+
+        if (productoExistente) {
+            // SI EXISTE: Mostrar datos y bloquear guardado doble
+            inputNombre.value = productoExistente.nombre;
+            inputNombre.classList.add('exists');
+            inputNombre.readOnly = true; // No dejamos editar si ya existe
+            btnSave.disabled = true;
+            btnSave.innerText = "PRODUCTO YA EN GALERÍA";
+            status.innerHTML = "<span style='color:var(--warning)'>¡Producto encontrado!</span>";
+        } else {
+            // SI NO EXISTE: Permitir ingreso de nuevo nombre
+            inputNombre.value = "";
+            inputNombre.classList.remove('exists');
+            inputNombre.classList.add('is-new');
+            inputNombre.readOnly = false;
+            btnSave.disabled = false;
+            btnSave.innerText = "GUARDAR NUEVO PRODUCTO";
+            status.innerHTML = "<span style='color:var(--success)'>Código nuevo detectado</span>";
+        }
+
         if (navigator.vibrate) navigator.vibrate(100);
     });
 
@@ -109,24 +123,35 @@
             return;
         }
 
-        // Validación de Duplicados (Mismo código o mismo nombre)
-        if (db.some(p => p.codigo === codigo)) return alert("El CÓDIGO ya existe.");
-        if (db.some(p => p.nombre.toLowerCase() === nombre.toLowerCase())) return alert("El NOMBRE ya existe.");
+        // VALIDACIÓN DE NOMBRE DUPLICADO (Evita que dos códigos distintos se llamen igual)
+        if (db.some(p => p.nombre.toLowerCase() === nombre.toLowerCase())) {
+            alert("Este nombre ya está asignado a otro producto.");
+            return;
+        }
 
         db.push({ codigo, nombre });
         localStorage.setItem('galeria_codigos', JSON.stringify(db));
         renderTable();
         
-        document.getElementById('product-name').value = "";
+        // Resetear vista
+        resetForm();
+    }
+
+    function resetForm() {
         document.getElementById('barcode-res').value = "";
+        const nameInput = document.getElementById('product-name');
+        nameInput.value = "";
+        nameInput.classList.remove('exists', 'is-new');
+        nameInput.readOnly = false;
+        document.getElementById('btn-save').disabled = false;
+        document.getElementById('btn-save').innerText = "GUARDAR NUEVO PRODUCTO";
     }
 
     function renderTable() {
         const body = document.getElementById('gallery-body');
-        body.innerHTML = db.map(p => `<tr><td>${p.codigo}</td><td>${p.nombre}</td></tr>`).join('');
+        body.innerHTML = db.slice().reverse().map(p => `<tr><td>${p.codigo}</td><td>${p.nombre}</td></tr>`).join('');
     }
 
-    // Ejecutar al cargar la página
     window.onload = () => {
         iniciarEscanner();
         renderTable();
