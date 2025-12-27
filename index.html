@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escáner de Códigos de Barras</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .container {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 30px;
+        }
+        
+        .menu {
+            background-color: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            height: fit-content;
+        }
+        
+        .menu h2 {
+            margin-bottom: 20px;
+            color: #2575fc;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+        
+        .btn-menu {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 15px;
+            text-align: left;
+            background-color: #f8f9fa;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #444;
+            border-left: 4px solid transparent;
+        }
+        
+        .btn-menu:hover {
+            background-color: #e9ecef;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-left-color: #2575fc;
+        }
+        
+        .btn-menu.active {
+            background-color: #e3f2fd;
+            color: #2575fc;
+            border-left-color: #2575fc;
+            font-weight: 600;
+        }
+        
+        .content {
+            background-color: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            min-height: 600px;
+        }
+        
+        .section {
+            display: none;
+        }
+        
+        .section.active {
+            display: block;
+        }
+        
+        .section h2 {
+            color: #2575fc;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        
+        input[type="text"]:focus {
+            border-color: #2575fc;
+            outline: none;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            background-color: #2575fc;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+        
+        .btn:hover {
+            background-color: #1c6ae4;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(37, 117, 252, 0.2);
+        }
+        
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+        
+        .btn-scan {
+            background-color: #28a745;
+        }
+        
+        .btn-scan:hover {
+            background-color: #218838;
+        }
+        
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+        
+        .products-list {
+            max-height: 500px;
+            overflow-y: auto;
+            margin-top: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        
+        .product-item {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .product-item:last-child {
+            border-bottom: none;
+        }
+        
+        .product-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .product-code {
+            font-weight: bold;
+            color: #2575fc;
+            font-family: monospace;
+            font-size: 18px;
+        }
+        
+        .product-name {
+            font-size: 18px;
+            color: #333;
+        }
+        
+        .btn-delete {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-delete:hover {
+            background-color: #c82333;
+        }
+        
+        .search-results {
+            margin-top: 20px;
+        }
+        
+        .result-item {
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #2575fc;
+        }
+        
+        .scan-simulation {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .scan-code {
+            font-family: monospace;
+            font-size: 24px;
+            text-align: center;
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+            margin: 15px 0;
+            letter-spacing: 2px;
+            border: 2px dashed #ccc;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            color: #777;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            
+            .menu {
+                margin-bottom: 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>📦 Sistema de Gestión de Productos</h1>
+        <p>Escáner de Códigos de Barras con Galería de Productos</p>
+    </header>
+    
+    <div class="container">
+        <div class="menu">
+            <h2>Menú Principal</h2>
+            <button class="btn-menu active" data-section="add-manual">➕ Agregar Producto Manual</button>
+            <button class="btn-menu" data-section="add-scan">📷 Simular Escaneo</button>
+            <button class="btn-menu" data-section="search-name">🔍 Buscar por Nombre</button>
+            <button class="btn-menu" data-section="search-code">🔢 Buscar por Código</button>
+            <button class="btn-menu" data-section="list-all">📋 Listar Productos</button>
+            <button class="btn-menu" data-section="delete">🗑️ Eliminar Producto</button>
+            <button class="btn-menu" data-section="verify">✅ Verificar Unicidad</button>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+                <p style="font-size: 14px; color: #666;">Productos en galería: <strong id="product-count">0</strong></p>
+            </div>
+        </div>
+        
+        <div class="content">
+            <!-- Sección: Agregar Producto Manual -->
+            <div class="section active" id="add-manual">
+                <h2>Agregar Producto Manualmente</h2>
+                <div id="message-add-manual" class="message" style="display:none;"></div>
+                
+                <div class="form-group">
+                    <label for="barcode">Código de Barras (12-13 dígitos):</label>
+                    <input type="text" id="barcode" placeholder="Ej: 123456789012">
+                    <small style="color: #666;">El código debe contener solo números y tener entre 12 y 13 dígitos.</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="product-name">Nombre del Producto:</label>
+                    <input type="text" id="product-name" placeholder="Ej: Leche Entera 1L">
+                    <small style="color: #666;">El nombre debe ser único y no puede estar vacío.</small>
+                </div>
+                
+                <button class="btn" id="btn-add-manual">Agregar Producto</button>
+                <button class="btn btn-secondary" id="btn-clear-manual">Limpiar Campos</button>
+            </div>
+            
+            <!-- Sección: Simular Escaneo -->
+            <div class="section" id="add-scan">
+                <h2>Simular Escaneo de Código de Barras</h2>
+                <div id="message-add-scan" class="message" style="display:none;"></div>
+                
+                <div class="scan-simulation">
+                    <p>Para simular el escaneo, haga clic en el botón "Generar Código" o escriba un código manualmente.</p>
+                    
+                    <div class="scan-code" id="scan-code-display">---</div>
+                    
+                    <button class="btn btn-scan" id="btn-generate-barcode">Generar Código Aleatorio</button>
+                    <button class="btn btn-secondary" id="btn-scan-manual">Escribir Código Manualmente</button>
+                    
+                    <div id="manual-scan-input" style="display:none; margin-top: 20px;">
+                        <input type="text" id="manual-barcode-input" placeholder="Ingrese código de 12-13 dígitos">
+                        <button class="btn" id="btn-use-manual-barcode" style="margin-top: 10px;">Usar este Código</button>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 30px;">
+                    <div class="form-group">
+                        <label for="product-name-scan">Nombre del Producto:</label>
+                        <input type="text" id="product-name-scan" placeholder="Ej: Galletas de Chocolate">
+                    </div>
+                    
+                    <button class="btn" id="btn-add-scan">Agregar Producto Escaneado</button>
+                </div>
+            </div>
+            
+            <!-- Sección: Buscar por Nombre -->
+            <div class="section" id="search-name">
+                <h2>Buscar Producto por Nombre</h2>
+                <div id="message-search-name" class="message" style="display:none;"></div>
+                
+                <div class="form-group">
+                    <label for="search-name-input">Nombre o parte del nombre:</label>
+                    <input type="text" id="search-name-input" placeholder="Ej: leche">
+                </div>
+                
+                <button class="btn" id="btn-search-name">Buscar Productos</button>
+                
+                <div class="search-results" id="search-name-results"></div>
+            </div>
+            
+            <!-- Sección: Buscar por Código -->
+            <div class="section" id="search-code">
+                <h2>Buscar Producto por Código</h2>
+                <div id="message-search-code" class="message" style="display:none;"></div>
+                
+                <div class="form-group">
+                    <label for="search-code-input">Código de Barras:</label>
+                    <input type="text" id="search-code-input" placeholder="Ej: 123456789012">
+                </div>
+                
+                <button class="btn" id="btn-search-code">Buscar Producto</button>
+                
+                <div class="search-results" id="search-code-results"></div>
+            </div>
+            
+            <!-- Sección: Listar Todos los Productos -->
+            <div class="section" id="list-all">
+                <h2>Lista de Todos los Productos</h2>
+                <div id="message-list-all" class="message" style="display:none;"></div>
+                
+                <div class="products-list" id="all-products-list">
+                    <!-- Los productos se cargarán aquí -->
+                </div>
+                
+                <button class="btn" id="btn-refresh-list">Actualizar Lista</button>
+            </div>
+            
+            <!-- Sección: Eliminar Producto -->
+            <div class="section" id="delete">
+                <h2>Eliminar Producto</h2>
+                <div id="message-delete" class="message" style="display:none;"></div>
+                
+                <div class="form-group">
+                    <label for="delete-code-input">Código de Barras del producto a eliminar:</label>
+                    <input type="text" id="delete-code-input" placeholder="Ej: 123456789012">
+                </div>
+                
+                <button class="btn btn-delete" id="btn-delete-confirm">Eliminar Producto</button>
+                <button class="btn btn-secondary" id="btn-delete-cancel">Cancelar</button>
+                
+                <div id="delete-preview" style="margin-top: 20px; display:none;">
+                    <p>Producto a eliminar:</p>
+                    <div class="result-item">
+                        <p><strong>Código:</strong> <span id="delete-preview-code"></span></p>
+                        <p><strong>Nombre:</strong> <span id="delete-preview-name"></span></p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sección: Verificar Unicidad -->
+            <div class="section" id="verify">
+                <h2>Verificar Unicidad de Código y Nombre</h2>
+                <div id="message-verify" class="message" style="display:none;"></div>
+                
+                <div class="form-group">
+                    <label for="verify-code-input">Código de Barras a verificar:</label>
+                    <input type="text" id="verify-code-input" placeholder="Ej: 123456789012">
+                </div>
+                
+                <div class="form-group">
+                    <label for="verify-name-input">Nombre a verificar:</label>
+                    <input type="text" id="verify-name-input" placeholder="Ej: Leche Deslactosada">
+                </div>
+                
+                <button class="btn" id="btn-verify">Verificar Disponibilidad</button>
+                
+                <div class="search-results" id="verify-results"></div>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>Sistema de Gestión de Productos con Códigos de Barras &copy; 2023</p>
+        <p>Los datos se guardan en el navegador (localStorage)</p>
+    </footer>
+
+    <script>
+        // Clase Producto
+        class Producto {
+            constructor(codigo_barras, nombre) {
+                this.codigo_barras = codigo_barras;
+                this.nombre = nombre;
+            }
+        }
+
+        // Clase GaleriaProductos
+        class GaleriaProductos {
+            constructor() {
+                this.productos = this.cargarDatos();
+                this.actualizarContador();
+            }
+            
+            cargarDatos() {
+                const datos = localStorage.getItem('productos');
+                if (datos) {
+                    try {
+                        return JSON.parse(datos);
+                    } catch (e) {
+                        console.error('Error al cargar los datos:', e);
+                        return [];
+                    }
+                }
+                return [];
+            }
+            
+            guardarDatos() {
+                localStorage.setItem('productos', JSON.stringify(this.productos));
+                this.actualizarContador();
+            }
+            
+            actualizarContador() {
+                const contador = document.getElementById('product-count');
+                if (contador) {
+                    contador.textContent = this.productos.length;
+                }
+            }
+            
+            verificarCodigoUnico(codigo_barras) {
+                return !this.productos.some(producto => producto.codigo_barras === codigo_barras);
+            }
+            
+            verificarNombreUnico(nombre) {
+                return !this.productos.some(producto => 
+                    producto.nombre.toLowerCase() === nombre.toLowerCase()
+                );
+            }
+            
+            agregarProducto(codigo_barras, nombre) {
+                // Validaciones
+                if (!codigo_barras || !nombre) {
+                    return { exito: false, mensaje: 'El código de barras y el nombre son obligatorios.' };
+                }
+                
+                if (!/^\d{12,13}$/.test(codigo_barras)) {
+                    return { exito: false, mensaje: 'El código de barras debe contener solo números y tener 12 o 13 dígitos.' };
+                }
+                
+                if (!this.verificarCodigoUnico(codigo_barras)) {
+                    return { exito: false, mensaje: `El código de barras "${codigo_barras}" ya existe.` };
+                }
+                
+                if (!this.verificarNombreUnico(nombre)) {
+                    return { exito: false, mensaje: `El nombre "${nombre}" ya existe.` };
+                }
+                
+                // Agregar producto
+                const nuevoProducto = new Producto(codigo_barras, nombre);
+                this.productos.push(nuevoProducto);
+                this.guardarDatos();
+                
+                return { exito: true, mensaje: `Producto "${nombre}" agregado correctamente.` };
+            }
+            
+            buscarPorCodigo(codigo_barras) {
+                return this.productos.find(producto => producto.codigo_barras === codigo_barras);
+            }
+            
+            buscarPorNombre(nombre) {
+                return this.productos.filter(producto => 
+                    producto.nombre.toLowerCase().includes(nombre.toLowerCase())
+                );
+            }
+            
+            eliminarProducto(codigo_barras) {
+                const producto = this.buscarPorCodigo(codigo_barras);
+                if (producto) {
+                    this.productos = this.productos.filter(p => p.codigo_barras !== codigo_barras);
+                    this.guardarDatos();
+                    return { exito: true, mensaje: `Producto "${producto.nombre}" eliminado correctamente.` };
+                } else {
+                    return { exito: false, mensaje: `No se encontró un producto con código "${codigo_barras}".` };
+                }
+            }
+            
+            listarProductos() {
+                return [...this.productos];
+            }
+        }
+
+        // Inicializar la galería
+        const galeria = new GaleriaProductos();
+
+        // Funciones de utilidad
+        function mostrarMensaje(elementId, mensaje, tipo = 'info') {
+            const elemento = document.getElementById(elementId);
+            elemento.textContent = mensaje;
+            elemento.className = `message ${tipo}`;
+            elemento.style.display = 'block';
+            
+            // Ocultar mensaje después de 5 segundos
+            setTimeout(() => {
+                elemento.style.display = 'none';
+            }, 5000);
+        }
+
+        function cambiarSeccion(seccionId) {
+            // Ocultar todas las secciones
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Mostrar la sección seleccionada
+            document.getElementById(seccionId).classList.add('active');
+            
+            // Actualizar botones del menú
+            document.querySelectorAll('.btn-menu').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.getAttribute('data-section') === seccionId) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Limpiar mensajes
+            document.querySelectorAll('.message').forEach(msg => {
+                msg.style.display = 'none';
+            });
+        }
+
+        function generarCodigoBarras() {
+            // Generar un código de 12 dígitos aleatorio
+            let codigo = '';
+            for (let i = 0; i < 12; i++) {
+                codigo += Math.floor(Math.random() * 10);
+            }
+            return codigo;
+        }
+
+        // Navegación del menú
+        document.querySelectorAll('.btn-menu').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const seccionId = btn.getAttribute('data-section');
+                cambiarSeccion(seccionId);
+                
+                // Si es la sección de listar productos, cargarlos
+                if (seccionId === 'list-all') {
+                    listarTodosProductos();
+                }
+            });
+        });
+
+        // 1. Agregar Producto Manualmente
+        document.getElementById('btn-add-manual').addEventListener('click', () => {
+            const codigo = document.getElementById('barcode').value.trim();
+            const nombre = document.getElementById('product-name').value.trim();
+            
+            const resultado = galeria.agregarProducto(codigo, nombre);
+            
+            if (resultado.exito) {
+                mostrarMensaje('message-add-manual', resultado.mensaje, 'success');
+                document.getElementById('barcode').value = '';
+                document.getElementById('product-name').value = '';
+            } else {
+                mostrarMensaje('message-add-manual', resultado.mensaje, 'error');
+            }
+        });
+
+        document.getElementById('btn-clear-manual').addEventListener('click', () => {
+            document.getElementById('barcode').value = '';
+            document.getElementById('product-name').value = '';
+            document.getElementById('message-add-manual').style.display = 'none';
+        });
+
+        // 2. Simular Escaneo
+        document.getElementById('btn-generate-barcode').addEventListener('click', () => {
+            const codigo = generarCodigoBarras();
+            document.getElementById('scan-code-display').textContent = codigo;
+            document.getElementById('manual-scan-input').style.display = 'none';
+            
+            // Verificar si el código ya existe
+            const productoExistente = galeria.buscarPorCodigo(codigo);
+            if (productoExistente) {
+                mostrarMensaje('message-add-scan', 
+                    `¡Código ya existe! Producto asociado: ${productoExistente.nombre}`, 
+                    'error'
+                );
+            } else {
+                mostrarMensaje('message-add-scan', 
+                    'Código generado correctamente. Ahora ingrese el nombre del producto.', 
+                    'success'
+                );
+            }
+        });
+
+        document.getElementById('btn-scan-manual').addEventListener('click', () => {
+            document.getElementById('manual-scan-input').style.display = 'block';
+        });
+
+        document.getElementById('btn-use-manual-barcode').addEventListener('click', () => {
+            const codigo = document.getElementById('manual-barcode-input').value.trim();
+            if (!/^\d{12,13}$/.test(codigo)) {
+                mostrarMensaje('message-add-scan', 
+                    'El código debe contener solo números y tener 12 o 13 dígitos.', 
+                    'error'
+                );
+                return;
+            }
+            
+            document.getElementById('scan-code-display').textContent = codigo;
+            
+            // Verificar si el código ya existe
+            const productoExistente = galeria.buscarPorCodigo(codigo);
+            if (productoExistente) {
+                mostrarMensaje('message-add-scan', 
+                    `¡Código ya existe! Producto asociado: ${productoExistente.nombre}`, 
+                    'error'
+                );
+            } else {
+                mostrarMensaje('message-add-scan', 
+                    'Código ingresado correctamente. Ahora ingrese el nombre del producto.', 
+                    'success'
+                );
+            }
+        });
+
+        document.getElementById('btn-add-scan').addEventListener('click', () => {
+            const codigo = document.getElementById('scan-code-display').textContent;
+            const nombre = document.getElementById('product-name-scan').value.trim();
+            
+            if (codigo === '---') {
+                mostrarMensaje('message-add-scan', 
+                    'Primero genere o ingrese un código de barras.', 
+                    'error'
+                );
+                return;
+            }
+            
+            const resultado = galeria.agregarProducto(codigo, nombre);
+            
+            if (resultado.exito) {
+                mostrarMensaje('message-add-scan', resultado.mensaje, 'success');
+                document.getElementById('product-name-scan').value = '';
+                document.getElementById('scan-code-display').textContent = '---';
+                document.getElementById('manual-scan-input').style.display = 'none';
+                document.getElementById('manual-barcode-input').value = '';
+            } else {
+                mostrarMensaje('message-add-scan', resultado.mensaje, 'error');
+            }
+        });
+
+        // 3. Buscar por Nombre
+        document.getElementById('btn-search-name').addEventListener('click', () => {
+            const nombre = document.getElementById('search-name-input').value.trim();
+            const resultados = document.getElementById('search-name-results');
+            
+            if (!nombre) {
+                mostrarMensaje('message-search-name', 
+                    'Debe ingresar un término de búsqueda.', 
+                    'error'
+                );
+                resultados.innerHTML = '';
+                return;
+            }
+            
+            const productosEncontrados = galeria.buscarPorNombre(nombre);
+            
+            if (productosEncontrados.length > 0) {
+                let html = `<h3>${productosEncontrados.length} producto(s) encontrado(s):</h3>`;
+                
+                productosEncontrados.forEach(producto => {
+                    html += `
+                    <div class="result-item">
+                        <p><strong>Código:</strong> <span class="product-code">${producto.codigo_barras}</span></p>
+                        <p><strong>Nombre:</strong> ${producto.nombre}</p>
+                    </div>
+                    `;
+                });
+                
+                resultados.innerHTML = html;
+                mostrarMensaje('message-search-name', 
+                    `Búsqueda completada: ${productosEncontrados.length} resultado(s) encontrado(s).`, 
+                    'success'
+                );
+            } else {
+                resultados.innerHTML = '<p>No se encontraron productos con ese nombre.</p>';
+                mostrarMensaje('message-search-name', 
+                    'No se encontraron productos con ese nombre.', 
+                    'info'
+                );
+            }
+        });
+
+        // 4. Buscar por Código
+        document.getElementById('btn-search-code').addEventListener('click', () => {
+            const codigo = document.getElementById('search-code-input').value.trim();
+            const resultados = document.getElementById('search-code-results');
+            
+            if (!codigo) {
+                mostrarMensaje('message-search-code', 
+                    'Debe ingresar un código de barras.', 
+                    'error'
+                );
+                resultados.innerHTML = '';
+                return;
+            }
+            
+            const producto = galeria.buscarPorCodigo(codigo);
+            
+            if (producto) {
+                resultados.innerHTML = `
+                <div class="result-item">
+                    <h3>Producto encontrado:</h3>
+                    <p><strong>Código:</strong> <span class="product-code">${producto.codigo_barras}</span></p>
+                    <p><strong>Nombre:</strong> ${producto.nombre}</p>
+                </div>
+                `;
+                mostrarMensaje('message-search-code', 
+                    'Producto encontrado correctamente.', 
+                    'success'
+                );
+            } else {
+                resultados.innerHTML = '<p>No se encontró un producto con ese código.</p>';
+                mostrarMensaje('message-search-code', 
+                    'No se encontró un producto con ese código.', 
+                    'info'
+                );
+            }
+        });
+
+        // 5. Listar todos los productos
+        function listarTodosProductos() {
+            const lista = document.getElementById('all-products-list');
+            const productos = galeria.listarProductos();
+            
+            if (productos.length === 0) {
+                lista.innerHTML = '<div class="product-item"><p>No hay productos en la galería.</p></div>';
+                mostrarMensaje('message-list-all', 'No hay productos en la galería.', 'info');
+                return;
+            }
+            
+            let html = '';
+            productos.forEach(producto => {
+                html += `
+                <div class="product-item">
+                    <div>
+                        <div class="product-code">${producto.codigo_barras}</div>
+                        <div class="product-name">${producto.nombre}</div>
+                    </div>
+                    <button class="btn-delete" data-codigo="${producto.codigo_barras}">Eliminar</button>
+                </div>
+                `;
+            });
+            
+            lista.innerHTML = html;
+            
+            // Agregar event listeners a los botones de eliminar
+            document.querySelectorAll('#all-products-list .btn-delete').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const codigo = e.target.getAttribute('data-codigo');
+                    eliminarProductoDesdeLista(codigo);
+                });
+            });
+        }
+
+        function eliminarProductoDesdeLista(codigo) {
+            if (confirm(`¿Está seguro de eliminar el producto con código ${codigo}?`)) {
+                const resultado = galeria.eliminarProducto(codigo);
+                
+                if (resultado.exito) {
+                    mostrarMensaje('message-list-all', resultado.mensaje, 'success');
+                    listarTodosProductos();
+                } else {
+                    mostrarMensaje('message-list-all', resultado.mensaje, 'error');
+                }
+            }
+        }
+
+        document.getElementById('btn-refresh-list').addEventListener('click', listarTodosProductos);
+
+        // 6. Eliminar Producto
+        document.getElementById('btn-delete-confirm').addEventListener('click', () => {
+            const codigo = document.getElementById('delete-code-input').value.trim();
+            
+            if (!codigo) {
+                mostrarMensaje('message-delete', 
+                    'Debe ingresar un código de barras.', 
+                    'error'
+                );
+                return;
+            }
+            
+            const producto = galeria.buscarPorCodigo(codigo);
+            
+            if (!producto) {
+                mostrarMensaje('message-delete', 
+                    `No se encontró un producto con código "${codigo}".`, 
+                    'error'
+                );
+                document.getElementById('delete-preview').style.display = 'none';
+                return;
+            }
+            
+            // Mostrar preview del producto a eliminar
+            document.getElementById('delete-preview-code').textContent = producto.codigo_barras;
+            document.getElementById('delete-preview-name').textContent = producto.nombre;
+            document.getElementById('delete-preview').style.display = 'block';
+            
+            // Confirmar eliminación
+            if (confirm(`¿Está seguro de eliminar el producto "${producto.nombre}"?`)) {
+                const resultado = galeria.eliminarProducto(codigo);
+                
+                if (resultado.exito) {
+                    mostrarMensaje('message-delete', resultado.mensaje, 'success');
+                    document.getElementById('delete-code-input').value = '';
+                    document.getElementById('delete-preview').style.display = 'none';
+                } else {
+                    mostrarMensaje('message-delete', resultado.mensaje, 'error');
+                }
+            }
+        });
+
+        document.getElementById('btn-delete-cancel').addEventListener('click', () => {
+            document.getElementById('delete-code-input').value = '';
+            document.getElementById('delete-preview').style.display = 'none';
+            document.getElementById('message-delete').style.display = 'none';
+        });
+
+        // 7. Verificar Unicidad
+        document.getElementById('btn-verify').addEventListener('click', () => {
+            const codigo = document.getElementById('verify-code-input').value.trim();
+            const nombre = document.getElementById('verify-name-input').value.trim();
+            const resultados = document.getElementById('verify-results');
+            
+            let html = '';
+            
+            if (codigo) {
+                const codigoUnico = galeria.verificarCodigoUnico(codigo);
+                if (codigoUnico) {
+                    html += `<div class="result-item success">✓ El código "${codigo}" está disponible.</div>`;
+                } else {
+                    const productoExistente = galeria.buscarPorCodigo(codigo);
+                    html += `<div class="result-item error">✗ El código "${codigo}" ya existe. Producto asociado: ${productoExistente.nombre}</div>`;
+                }
+            }
+            
+            if (nombre) {
+                const nombreUnico = galeria.verificarNombreUnico(nombre);
+                if (nombreUnico) {
+                    html += `<div class="result-item success">✓ El nombre "${nombre}" está disponible.</div>`;
+                } else {
+                    html += `<div class="result-item error">✗ El nombre "${nombre}" ya existe en la galería.</div>`;
+                }
+            }
+            
+            if (!codigo && !nombre) {
+                mostrarMensaje('message-verify', 
+                    'Debe ingresar al menos un código o un nombre para verificar.', 
+                    'error'
+                );
+                resultados.innerHTML = '';
+                return;
+            }
+            
+            resultados.innerHTML = html;
+            mostrarMensaje('message-verify', 
+                'Verificación completada.', 
+                'info'
+            );
+        });
+
+        // Inicializar la aplicación
+        window.addEventListener('DOMContentLoaded', () => {
+            // Cargar productos al inicio
+            listarTodosProductos();
+            
+            // Asignar eventos a los campos de entrada para permitir Enter
+            document.querySelectorAll('input').forEach(input => {
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        // Buscar el botón principal de la sección activa y hacer clic
+                        const seccionActiva = document.querySelector('.section.active');
+                        const botonPrincipal = seccionActiva.querySelector('.btn:not(.btn-secondary)');
+                        if (botonPrincipal) {
+                            botonPrincipal.click();
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
